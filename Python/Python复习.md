@@ -429,6 +429,86 @@ def example(pos1, pos2, default="default", *args, named_kwarg, **kwargs):
 
 上述函数签名表明，`pos1` 和 `pos2` 是位置参数，`default` 是有默认值的位置参数，`*args` 接收额外的位置参数，`named_kwarg` 是命名关键字参数，而 `**kwargs` 接收额外的关键字参数。
 
+### 作用域
+
+查找顺序：L - E - G - B
+
+**局部作用域 (Local Scope)**:
+
+- 在一个函数内部定义的变量拥有局部作用域。
+- 局部变量只能在其被定义的函数体内访问。
+- 当函数执行完毕后，局部作用域就会消失，除非该函数返回了一个闭包。
+
+**嵌套作用域 (Enclosing Scope)**:
+
+- 这是指在另一个函数内部定义的函数，内部函数可以访问外部函数中的变量。
+- 嵌套作用域允许内部函数访问其包围函数中定义的变量，只要这些变量不是局部变量。
+
+**全局作用域 (Global Scope)**:
+
+- 在最顶层的代码块（即不在任何函数或类定义之内）中定义的变量拥有全局作用域。
+- 全局变量可以在整个模块的任何地方被访问，但是要在函数内部修改全局变量的话，需要使用`global`关键字声明。
+
+**内置作用域 (Built-in Scope)**:
+
+- 这是最外层的作用域，包含了所有内置函数和标准类型的名字。
+- 内置作用域是Python本身提供的，包含了如`len`, `str`, `object`等名称。
+
+#### 改变作用域
+
+- global：将局部变量变为全局变量
+- nonlocal：可在闭包函数中引用并使用闭包外部函数的变量（非全局）
+- global可以用于任何地方，声明变量为全局变量（声明时，不能同时赋值）； 声明后再修改，则修改了全局变量的值。
+- nonlocal的作用范围仅限于所在子函数的上一层函数中拥有的局部变量， 必须在上层函数中已经定义过，且非全局变量，否则报错。
+
+### 闭包
+
+嵌套、引用、返回
+
+```python
+def nth_power(exponent):
+    def exponent_of(base):
+        return base ** exponent
+    return exponent_of
+
+square = nth_power(2)
+cube = nth_power(3)
+print(square(2)) # 4
+print(cube(2)) # 8
+```
+
+```python
+def deco():
+    age = 10
+    def wrapper():
+        nonlocal age # 声明 age 为非局部变量
+        age += 1
+        print(age)
+    return wrapper
+
+deco()()  # 输出 11
+
+# 存储返回的 wrapper 函数
+increment_age = deco()
+
+# 每次调用 increment_age，age 都会在上一次的基础上 +1
+increment_age()  # 输出 11
+increment_age()  # 输出 12
+increment_age()  # 输出 13
+```
+
+任何一层子函数，若直接使用全局变量且不对其改变的话，则共享全局变量的 值；一旦子函数中改变该同名变量，则其降为该子函数所属的局部变量。
+
+```python
+def deco():
+    age = 10
+    def wrapper():
+        print(age) # 这样是可以访问的
+    return wrapper
+
+deco()()  # 输出 10
+```
+
 
 
 ### 其他
@@ -441,7 +521,80 @@ def example(pos1, pos2, default="default", *args, named_kwarg, **kwargs):
 
 python中没有switch，相似的结构为match
 
-## 装饰器
+表达式：由变量、运算符、常量和其他语法构造组成的组合，用于计算一个值。换句话说，表达式是为了求值而存在的。
+
+语句：是程序中的指令，用于执行某个动作或命令。它是用来告诉计算机做什么事情的，而不是为了产生一个值。
+
+```python
+x + y           # 数学加法表达式
+2 * (3 + 4)     # 包含括号的数学表达式
+len(my_list)    # 函数调用作为表达式
+x > y           # 比较操作符构成的布尔表达式
+
+if x > 0:       # 条件语句
+    print("Positive")   # 函数调用语句
+for i in range(5):      # 循环语句
+    print(i)
+def my_function():      # 函数定义语句
+    pass
+x = 10                 # 变量赋值语句
+```
+
+
+
+#### 推导式
+
+列表推导式、集合推导式、字典推导式
+
+```python
+squares = [x**2 for x in range(10)]
+even_squares = [x**2 for x in range(10) if x % 2 == 0]
+unique_squares = {x**2 for x in range(-3, 4)}
+square_dict = {x: x**2 for x in range(5)}
+```
+
+还有生成器表达式
+
+```python
+gen_exp = (x**2 for x in range(5))
+# 使用生成器
+for num in gen_exp:
+    print(num)
+```
+
+
+
+#### 匿名函数与高阶函数
+
+高阶函数：能够接受函数作为参数或者返回函数作为结果的函数
+
+Python 提供了一些内置的高阶函数，它们可以直接使用而无需额外导入：
+
+- **`map(function, iterable, ...)`**: 将函数应用于所有输入列表的元素，并返回一个包含结果的迭代器。
+- **`filter(function or None, iterable)`**: 构造一个迭代器，从输入迭代器中提取出使函数返回`True`的元素。
+- **`reduce(function, sequence[, initial])`**: 对序列累积地应用二元函数function，从左到右，以便将其减少为单一值。（需从`functools`模块导入）
+- **`sorted(iterable, *, key=None, reverse=False)`**: 返回一个新的已排序列表，可以指定排序规则。
+
+```python
+# 使用 map() 和 lambda 将列表中的每个元素平方
+numbers = [1, 2, 3, 4]
+squared = list(map(lambda x: x**2, numbers))
+print(squared)  # 输出: [1, 4, 9, 16]
+
+# 使用 filter() 和 lambda 筛选出偶数
+even_numbers = list(filter(lambda x: x % 2 == 0, numbers))
+print(even_numbers)  # 输出: [2, 4]
+
+# 使用 reduce() 和 lambda 计算列表元素的乘积 (需从 functools 导入)
+from functools import reduce
+product = reduce(lambda x, y: x * y, numbers)
+print(product)  # 输出: 24
+
+# 按照字典项的值进行排序
+exam_res = {'Mike': 75, 'Judy': 88, 'Cris': 57}
+sorted_items = sorted(exam_res.items(), key=lambda item: item[1], reverse=True)
+print(sorted_items)  # 输出: [('Judy', 88), ('Mike', 75), ('Cris', 57)]
+```
 
 
 
@@ -449,7 +602,47 @@ python中没有switch，相似的结构为match
 
 
 
-## 迭代器生成器
+## Decorator
+
+装饰器通常是一个以另一函数作为参数的函数，并返回一个新的函数。
+
+1. **函数作为对象**：在Python中，函数是一等公民，意味着函数可以被赋值给变量、作为参数传递给其他函数、从函数中返回，甚至可以包含在数据结构中。
+2. **内嵌函数**：可以在另一个函数内部定义函数，这种函数称为内嵌函数或局部函数。
+3. **闭包（Closure）**：如果一个内嵌函数引用了外部作用域中的变量，并且这个内嵌函数在外部函数返回后仍然有效，那么就形成了闭包。闭包保留对外部作用域变量的访问权限。
+
+```python
+import time
+def time_counter(fn):
+    def wrapper():
+        start = time.time()
+        fn()
+        end = time.time()
+        return end - start
+    return wrapper
+
+@time_counter
+def func():
+    # func = time_counter(func)
+    print("Hello, World!")
+
+func() 
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Generator, Iterator
 
 
 
