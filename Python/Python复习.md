@@ -628,29 +628,237 @@ def func():
 func() 
 ```
 
+### 带参数装饰器
+
+```python
+def repeat(num_times):
+    def decorator_repeat(func):
+        @functools.wraps(func)  # 保持原函数的元信息
+        def wrapper_repeat(*args, **kwargs):
+            for _ in range(num_times):
+                value = func(*args, **kwargs)
+            return value
+        return wrapper_repeat
+    return decorator_repeat
+
+@repeat(num_times=4)
+def say_whee():
+    print("Whee!")
+
+say_whee()
+```
+
+注意三层嵌套的结构。
+
+`@functools.wraps(func)` 用于复制原始函数的属性到包装函数上，确保原始函数的元信息不会丢失。
+
+### 类装饰器
+
+定义一个类，并在这个类中实现`__init__`和`__call__`方法：
+
+- `__init__`: 用于接收被装饰的函数或方法。
+- `__call__`: 使得类的实例像函数一样可调用。当装饰后的函数被调用时，实际上是调用了这个方法。
+
+```python
+class Decorator:
+    def __init__(self, func):
+        print("inside Decorator.__init__")
+        self.func = func
+
+    def __call__(self, *args, **kwargs):
+        self.func(*args, **kwargs)
+        print("inside Decorator.__call__")
+
+@Decorator
+def my_func(x, y):
+    print("inside my_func", x, y)
+
+
+print("finished decorating my_func")
+my_func(1, 2)
+```
+
+### 多个装饰器
+
+当多个装饰器应用到同一个函数上时，它们按照从内到外的顺序执行，即==最靠近被装饰函数的那个装饰器最先执行，而最外层的装饰器最后执行==。
+
+```python
+from functools import wraps
+
+def repeat(num_times):
+    def decorator_repeat(func):
+        @wraps(func)
+        def wrapper_repeat(*args, **kwargs):
+            for _ in range(num_times):
+                value = func(*args, **kwargs)
+                print(value)
+        return wrapper_repeat
+    return decorator_repeat
+
+def uppercase(func):
+    @wraps(func)
+    def wrapper_uppercase(*args, **kwargs):
+        original_result = func(*args, **kwargs)
+        modified_result = original_result.upper()
+        return modified_result
+    return wrapper_uppercase
+
+@repeat(num_times=2)
+@uppercase
+def say_hello(name):
+    return f"hello {name}"
+
+say_hello("world")
+"""
+HELLO WORLD
+HELLO WORLD
+"""
+```
 
 
 
+## Iterator, Generator
 
+### Iterable
 
+- ==实现了`__iter__()`或`__getitem__()`协议的对象==
+- Python 提供了两个通用迭代器对象：
+  - 序列对象：list, str, tuple
+  - 非序列对象：dict, file objects
+- 可迭代对象可用于for 循环，及其它需要序列的地方（如zip()、map() ...）
+- 使用内置函数iter()，或者`__iter__()`方法，可将可迭代对象转换为迭代器iterator
 
+`__getitem__()`用于使用[ ]取值，支持索引访问，如list[2]
 
+转换为迭代器：`a.__iter__()`或者iter(a)
 
+### Iterator
 
+- ==实现迭代器协议的对象，它包含方法`__iter__() `和`__next__()`==
+- 迭代器的`__iter__() `方法用来返回该迭代器对象自身，故迭代器必定是可迭代对象
+- 迭代器的` __next__()` 方法（或将其传给内置函数 next()）将逐个返回数据流中的项，当没有数据可用时将引发 StopIteration 异常
 
+```python
+class MyRange:
+    def __init__(self, start, end):
+        self.current = start
+        self.end = end
 
+    def __iter__(self):
+        return self
 
+    def __next__(self):
+        if self.current < self.end:
+            num = self.current
+            self.current += 1
+            return num
+        raise StopIteration
 
+# 使用自定义迭代器
+for i in MyRange(1, 5):
+    print(i)
+```
 
-## Generator, Iterator
+### Generator
 
+生成器是一种特殊的迭代器，通过生成器表达式和生成器函数创建
 
+#### 生成器表达式
 
+```python
+# 创建一个生成器，仅生成偶数的平方
+even_squares_gen = (x**2 for x in range(10) if x % 2 == 0)
 
+# 使用for循环遍历生成器
+for square in even_squares_gen:
+    print(square, end=' ')
+# 输出: 0 4 16 36 64
+```
 
+- 元素是在迭代过程中动态生成的，这意味着直到真正需要时才会计算这些值。
+- 一旦生成器被完全迭代，它就不能再次使用。如果需要重新迭代相同的序列，必须重新创建生成器。
+- 不像列表那样支持随机访问；你不能通过索引获取特定位置的元素。
 
+#### 生成器函数
 
+生成器函数通过使用`def`关键字定义，就像普通函数一样，但它们至少包含一个`yield`语句。每次调用生成器函数时，它都会返回一个新的生成器对象，而不是直接执行代码。生成器对象可以用来迭代获取由`yield`语句产生的值。
 
+```python
+def count_up_to(max):
+    count = 1
+    while count <= max:
+        yield count
+        count += 1
+
+# 调用生成器函数，创建生成器对象
+counter = count_up_to(5)
+
+# 使用for循环遍历生成器
+for num in counter:
+    print(num)
+# 输出: 1 2 3 4 5
+```
+
+- 任何包含了yield关键字的函数都是生成器函数
+- 普通的函数计算并返回一个值，而生成器返回一个能返回数据流的迭代器
+- 当函数到达return表达式时，局部变量会被销毁然后把表达式返回给调用者
+- yield 和 return 最大区别：程序执行到 yield 时，生成器的执行状态会挂起并 保留局部变量，在下一次调用生成器__next__()方法的时候，函数会恢复执行
+- 若生成器没有产生下一个值就退出，则将引发StopIteration异常
+
+如果在生成器函数中使用了`return`，并且提供了返回值，那么该返回值会成为`StopIteration`异常的一部分，这在Python 3.3及之后的版本中是有效的。在此之前，`return`语句不能带有返回值。
+
+**.send(value)：**
+
+- 恢复执行并向生成器函数“发送”一个值value，其将成为当前yield表达式的结果
+- 当调用send() 来启动生成器时，它必须以None作为调用参数，因为这时没有可以接收值的yield 表达式：即`. __next__() `方法相当于 `.send(None)`
+
+**.throw(type[, value[, traceback]])** 
+
+- 在生成器暂停的位置引发一个异常，并返回该生成器函数所产生的下一个值
+- 若生成器没有产生下一个值就退出，则将引发StopIteration异常
+- 若生成器函数没有捕获传入的异常，或是引发了另一个异常，则该异常会被传播给调用方
+- The type argument should be an exception class, and value should be an exception instance
+
+**.close()：**
+
+- 在生成器函数暂停的位置引发GeneratorExit
+- 若生成器函数正常退出、关闭或引发GeneratorExit (由于未捕获该异常)则关闭并返回其调用者；若生成器产生了一个值，关闭会引发 RuntimeError；若生成器引发任何其他异常，它会被传播给调用者；若生成器已经由于异常或正常退出则close()不会做任何事
+
+```python
+def echo(value=None):
+    print("Execution starts when 'next()' is called for the first time.")
+    try:
+        while True:
+            try:
+                value = (yield value)
+                print("*****")
+            except Exception as e:
+                value = e
+    finally:
+        print("Don't forget to clean up when 'close()' is called.")
+
+generator = echo(1)
+print(next(generator))
+print(next(generator))
+print(generator.send(2))
+print(generator.throw(TypeError, "spam"))
+generator.close()
+"""
+Execution starts when 'next()' is called for the first time.
+1
+*****
+None
+*****
+2
+*****
+spam
+Don't forget to clean up when 'close()' is called.
+"""
+```
+
+在第一次调用 `next(generator)` 后，`yield` 表达式自身在这个时候评估为 `None`，因为这是首次调用 `next()`，并且 `next()` 总是相当于 `send(None)`。所以 `value = (yield value)` 实际上是 `value = None`。
+
+如果希望 `value` 保持其初始值或在每次迭代中不改变，除非显式地通过 `send()` 方法提供新值，你可以调整你的生成器逻辑来处理这种情况。例如，可以在生成器内部保存一个单独的变量用于输出，而 `value` 只用来接收新的输入值。
 
 ## OOP
 
