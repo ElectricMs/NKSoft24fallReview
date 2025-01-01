@@ -497,7 +497,7 @@ increment_age()  # 输出 12
 increment_age()  # 输出 13
 ```
 
-任何一层子函数，若直接使用全局变量且不对其改变的话，则共享全局变量的 值；一旦子函数中改变该同名变量，则其降为该子函数所属的局部变量。
+任何一层子函数，若直接使用全局变量且不对其改变的话，则共享全局变量的值；一旦子函数中改变该同名变量，则其降为该子函数所属的局部变量。
 
 ```python
 def deco():
@@ -521,9 +521,10 @@ deco()()  # 输出 10
 
 python中没有switch，相似的结构为match
 
-表达式：由变量、运算符、常量和其他语法构造组成的组合，用于计算一个值。换句话说，表达式是为了求值而存在的。
+- 表达式：由变量、运算符、常量和其他语法构造组成的组合，用于计算一个值。换句话说，表达式是为了求值而存在的。
 
-语句：是程序中的指令，用于执行某个动作或命令。它是用来告诉计算机做什么事情的，而不是为了产生一个值。
+- 语句：是程序中的指令，用于执行某个动作或命令。它是用来告诉计算机做什么事情的，而不是为了产生一个值。
+
 
 ```python
 x + y           # 数学加法表达式
@@ -595,8 +596,6 @@ exam_res = {'Mike': 75, 'Judy': 88, 'Cris': 57}
 sorted_items = sorted(exam_res.items(), key=lambda item: item[1], reverse=True)
 print(sorted_items)  # 输出: [('Judy', 88), ('Mike', 75), ('Cris', 57)]
 ```
-
-
 
 
 
@@ -717,6 +716,8 @@ HELLO WORLD
 
 
 
+
+
 ## Iterator, Generator
 
 ### Iterable
@@ -761,7 +762,7 @@ for i in MyRange(1, 5):
 
 ### Generator
 
-生成器是一种特殊的迭代器，通过生成器表达式和生成器函数创建
+生成器是一种特殊的迭代器，通过==生成器表达式和生成器函数==创建
 
 #### 生成器表达式
 
@@ -799,7 +800,7 @@ for num in counter:
 # 输出: 1 2 3 4 5
 ```
 
-- 任何包含了yield关键字的函数都是生成器函数
+- ==任何包含了yield关键字的函数都是生成器函数==
 - 普通的函数计算并返回一个值，而生成器返回一个能返回数据流的迭代器
 - 当函数到达return表达式时，局部变量会被销毁然后把表达式返回给调用者
 - yield 和 return 最大区别：程序执行到 yield 时，生成器的执行状态会挂起并 保留局部变量，在下一次调用生成器__next__()方法的时候，函数会恢复执行
@@ -856,11 +857,151 @@ Don't forget to clean up when 'close()' is called.
 """
 ```
 
-在第一次调用 `next(generator)` 后，`yield` 表达式自身在这个时候评估为 `None`，因为这是首次调用 `next()`，并且 `next()` 总是相当于 `send(None)`。所以 `value = (yield value)` 实际上是 `value = None`。
+`yield` 不仅负责返回一个值（挂起时），还可以接收调用者传入的值（恢复时）。
 
-如果希望 `value` 保持其初始值或在每次迭代中不改变，除非显式地通过 `send()` 方法提供新值，你可以调整你的生成器逻辑来处理这种情况。例如，可以在生成器内部保存一个单独的变量用于输出，而 `value` 只用来接收新的输入值。
+如果通过 `next()` 恢复生成器，`yield` 表达式的结果为 `None`，因为 `next()` 不能传递值。
+
+如果通过 `send(value)` 恢复生成器，`yield` 表达式的结果会是传递的值。
+
+第一次调用 `next(generator)` 时，生成器启动，执行到 `yield value`，`value` 的值是初始化时的 `1`。
+
+第二次调用 `next(generator)` 时，生成器恢复执行，`yield value` 表达式的结果是 `None`（因为 `next()` 不传递值），因此 `value` 被赋值为 `None`。
+
+
+
+
 
 ## OOP
+
+三大特性：封装、继承、多态
+
+协议编程：通过定义和实现**协议**来描述和实现行为，而不是依赖传统的继承关系。不需要通过类继承或明确实现某个接口，只要对象实现了协议中定义的行为，就被认为满足了该协议。
+
+### 基础
+
+```python
+class Student:
+    capacity = 10
+
+    def __init__(self, name, school):
+        self.name = name
+        self.school = school
+        print(self.capacity)
+
+    def practice(self):
+        print(self.capacity)
+
+    @classmethod
+    def show_capacity(cls):
+        print(cls.capacity)
+        
+    @staticmethod
+    def show_motto():
+        print("Public Interests & Capability")
+
+gj = Student("George", "MIT")
+gj.capacity = 100
+Student.capacity = 60
+print(gj.capacity) # 100
+gj.practice() # 100
+print(Student.capacity) # 60
+gj.show_capacity() # 60
+Student.show_capacity() # 60
+```
+
+**访问**
+
+- 实例可以访问类属性/方法
+- 类无法访问实例属性/方法
+
+**查找顺序**
+
+1. **实例对象属性**：先检查实例对象是否有该属性。
+2. **类属性**：如果实例中没有该属性，会在其对应的类中查找。
+3. **父类属性**：如果类中也没有，会在继承链（MRO，方法解析顺序）中查找父类的属性。
+4. **报错**：如果仍未找到，抛出 `AttributeError`。
+
+**修改属性**
+
+- 实例修改属性时，仅影响该实例
+- 修改类属性时，会影响所有没有覆盖该属性的实例
+
+**三种类的方法**
+
+实例方法、类方法、静态方法
+
+```python
+# 实例方法的调用
+gj.practice() # 自动传参
+Student.practice(gj) # 类调用实例方法需要先传入实例作为参数，手动传参
+
+# 类方法的调用
+gj.show_capacity()
+Student.show_capacity()
+
+# 静态方法的调用
+# 静态方法无法通过self或者cls访问到实例或类中的属性
+gj.show_motto()
+Student.show_motto()
+```
+
+```python
+print(gj.practice)
+print(Student.practice)
+print(Student.show_capacity)
+print(gj.show_capacity)
+print(gj.show_motto)
+print(Student.show_motto)
+
+"""
+<bound method Student.practice of <__main__.Student object at 0x0000021E8614E3F0>>
+<function Student.practice at 0x0000021E861A72E0>
+<bound method Student.show_capacity of <class '__main__.Student'>>
+<bound method Student.show_capacity of <class '__main__.Student'>>
+<function Student.show_motto at 0x0000021E861A6DE0>
+<function Student.show_motto at 0x0000021E861A6DE0>
+"""
+```
+
+**实例的绑定方法**
+
+- 类中的方法或函数，默认都是绑定给实例使用的
+- 绑定方法都有自动传值的功能，传递的值，就是对象本身
+- 类调用实例方法，实例方法仅被视为函数，无自动传值这一功能
+- 类想调用绑定方法，必须遵循函数的参数规则，有几个参数，就必须传递几个参数
+
+**类的绑定方法**
+
+- 通过classmethod装饰器，将绑定给实例的方法，绑定到了类
+- 如果一个方法绑定谁，在调用该函数时，将自动该调用者当作第一个参数传递到函数中
+- 无论类还是实例调用类的绑定方法，都会自动将类当作参数传递
+
+**类的非绑定方法**
+
+- 通过staticmethod装饰器，可以解除绑定关系，将一个类中的方法，变为一个普通函数
+- 静态方法中参数传递跟普通函数相同，无需考虑自动传参等问题
+
+
+
+
+
+
+
+### 继承
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
