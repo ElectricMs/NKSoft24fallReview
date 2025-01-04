@@ -2,6 +2,15 @@
 
 Python复习  202412  2211030
 
+- 判断  1分*15
+- 单选  1分*20
+- 填空  1分*20
+- 简答  4分*5
+- 看代码写结果  4题20分
+- 程序题  手写代码  15分
+
+（不知道哪里分值说错了）
+
 ## 语法介绍 
 
 CPython，官方解释器，基于c语言
@@ -981,31 +990,446 @@ print(Student.show_motto)
 - 通过staticmethod装饰器，可以解除绑定关系，将一个类中的方法，变为一个普通函数
 - 静态方法中参数传递跟普通函数相同，无需考虑自动传参等问题
 
+**方法与函数**
 
+- 可使用type()验证
+- 普通函数(未定义在类里)和静态方法是函数 (function)
+- 实例方法和类方法，都是方法(method) 
+- 方法是一种和对象 (实例或者类)绑定后的特殊函数
 
+**私有变量与私有方法**
 
+单前导下划线是一个约定，表示这是一个“内部使用”的变量或方法，开发者在使用时应该视其为私有（但并未真正强制）
+
+```python
+class Person:
+    def __init__(self, name, age):
+        self.name = name
+        self.__age = age
+
+    def is_adult(self):
+        return self.__age >= 18
+    
+    def __private_method(self):
+        print("This is a private method")
+
+xh = Person("Xiaohong", 20)
+xh.__age = 17
+print(xh.__age)
+print(xh._Person__age)
+xh._Person__private_method()
+# xh.__private_method()
+# AttributeError: 'Person' object has no attribute '__private_method'
+```
 
 
 
 ### 继承
 
+子类继承父类的所有属性和方法，子类可以重写父类的方法
+
+子类的构造函数不会自动调用父类的构造函数，需要显式调用
+
+子类可以扩展或重写父类的功能，并通过 `super()` 调用父类的方法
+
+**多继承与MRO**
+
+C3 线性化算法是 Python 用来确定多继承时方法解析顺序（MRO, Method Resolution Order）的规则
+
+- 本地优先级：指声明时父类的顺序，如C(A,B)，当访问C类对象属性时，应根据声明顺序，优先查找A类，再查找B类
+- 单调性：在C的继承顺序中，如A在B前，则C的所有子类，也须满足该顺序
+
+```python
+class F:
+    pass
+
+class E(F):
+    pass
+
+class G(F, E):
+    pass
+
+print(G.__mro__)
+# TypeError: Cannot create a consistent method resolution order (MRO) for bases F, E
+```
+
+![mro](./img/mro.png)
+
+**super()**
+
+```python
+class A:
+    def test(self):
+        print('A', self)
+
+class B:
+    def test(self):
+        print('B', self)
+
+class C(A, B):
+    def test(self):
+        super().test() # 根据mro顺序查找父类
+        super(C, self).test() # 查找c的父类
+        super(A, self).test() # 查找a的父类
+
+C().test()
+"""
+A <__main__.C object at 0x00000203B638DE50>
+A <__main__.C object at 0x00000203B638DE50>
+B <__main__.C object at 0x00000203B638DE50>
+"""
+```
+
+```python
+class Base():
+    def __init__(self):
+        print("enter Base")
+        print("leave Base")
+
+class A(Base):
+    def __init__(self):
+        print("enter A")
+        super().__init__()
+        print("leave A")
+
+class B(Base):
+    def __init__(self):
+        print("enter B")
+        super().__init__()
+        print("leave B")
+
+class C(A, B):
+    def __init__(self):
+        print("enter C")
+        super().__init__()
+        print("leave C")
+
+c = C()
+"""
+enter C
+enter A
+enter B
+enter Base
+leave Base
+leave B
+leave A
+leave C
+"""
+```
+
+每个类在 MRO 中只调用一次自己的构造函数，避免重复调用（如 `Base` 被 `A` 和 `B` 继承，但只调用了一次）；`super()` 根据 MRO 顺序，层层调用父类构造函数，并按调用链返回
+
+**不支持重载**
+
+- Python 中同名函数的定义，后者会覆盖前者
+- 子类会覆盖父类的同名方法，但可以通过 `super()` 调用父类方法
 
 
 
+### 多态
 
+多态发生的条件：继承和重写
 
+**通过抛异常实现多态约束**
 
+```python
+class Payment:
+    def pay(self, money):
+        raise NotImplementedError
+    
+class AliPay(Payment):
+    def pay(self, money):
+        print("AliPay pays", money)
+        
+class Applepay(Payment):
+    pass
 
+def scan(obj, money):
+    obj.pay(money)
 
+scan(AliPay(), 100)
+scan(Applepay(), 200)
+```
 
+**通过抽象基类和抽象方法实现多态约束**
 
+包含抽象方法的类，是特殊类，只能被继承，不能被实例化，且子类必须实现抽象方法
 
+```python
+from abc import ABC, abstractmethod
 
+class Payment(ABC):
+    @abstractmethod
+    def pay(self, money):
+        pass
 
+class AliPay(Payment):
+    def pay(self, money):
+        print("AliPay pays", money)
 
+class WeChatPay(Payment):
+    def pay(self, money):
+        print("WeChatPay pays", money)
 
+def scan(obj, money):
+    obj.pay(money)
 
+scan(AliPay(), 100)
+scan(WeChatPay(), 200)
+```
 
+**元类**
+
+`type`  是默认的元类，在 Python 中，所有类默认由内置的 `type` 元类创建
+
+```python
+# 使用 type 创建一个类
+MyClass = type('MyClass', (object,), {'attr': 42, 'method': lambda self: 'hello'})
+obj = MyClass()
+print(obj.attr)       # 输出: 42
+print(obj.method())   # 输出: hello
+```
+
+可以通过继承 `type` 创建自定义元类，从而改变类的创建过程
+
+- Python 遇到类定义时，会使用元类（默认是 `type`）创建这个类。
+- 元类通过 `__new__` 方法控制类的创建。
+- 元类通过 `__init__` 方法初始化类。
+
+```python
+# 在类定义时，验证类是否符合某些规则
+class ValidateMeta(type):
+    def __new__(cls, name, bases, dct):
+        if 'required_method' not in dct:
+            raise TypeError(f"Class {name} must define 'required_method'")
+        return super().__new__(cls, name, bases, dct)
+
+class MyClass(metaclass=ValidateMeta):
+    def required_method(self):
+        pass  # 正常
+
+# 在类中自动添加方法或属性
+class AutoAddMeta(type):
+    def __new__(cls, name, bases, dct):
+        dct['auto_method'] = lambda self: "I'm auto added!"
+        return super().__new__(cls, name, bases, dct)
+
+class MyClass(metaclass=AutoAddMeta):
+    pass
+
+obj = MyClass()
+print(obj.auto_method())  # 输出: I'm auto added!
+```
+
+- ` __new__` 方法是一种特殊的负责创建类实例的静态方法(无需使用staticmethod装饰器修饰)，调用一次就会得到一个对象
+-  `__new__` 方法至少必须要有一个参数cls，代表要实例化的类，此参数在实例化时由Python解释器自动提供
+-  `__new__()`必须要有返回值，返回由其调用生成的实例（很重要），这点在自定义`__new__`方法时要特别注意，可以return父类`__new__`方法生成的实例，或直接由object的`__new__`方法生成的实例，若`__new__`方法没有正确返回当前类cls的实例，`__init__`方法不会被调用，即便是父类的实例也不行
+
+```python
+# 示例：__new__() 返回不正确实例的影响
+class MyClass:
+    def __new__(cls, *args, **kwargs):
+        print(f"__new__ called with cls={cls}")
+        return object()  # 返回由 object.__new__ 创建的实例，但不是 MyClass 的实例
+
+    def __init__(self, *args, **kwargs):
+        # 因为 obj 不是 MyClass 的实例，所以 __init__ 方法不会被调用，Python会尝试调用对应类的 __init__
+        print("__init__ called")  
+
+obj = MyClass()
+print(isinstance(obj, MyClass))  # 输出: False
+```
+
+```python
+# 正确使用 __new__()
+# 通常 __new__() 方法应该返回通过父类 __new__ 方法创建的实例
+class MyClass:
+    def __new__(cls, *args, **kwargs):
+        print(f"__new__ called with cls={cls}")
+        return super().__new__(cls)  # 正确地创建实例
+
+    def __init__(self, *args, **kwargs):
+        print("__init__ called")
+
+obj = MyClass()
+print(isinstance(obj, MyClass))  # 输出: True
+```
+
+**单例模式**
+
+```python
+class Singleton:
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        print("Singleton.__new__ called")
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+```
+
+继承单例类的子类若没有重写`__new__()`， 其依然是单例类（向上查找调用父类方法）
+
+**协议编程**
+
+协议编程（Protocol-Oriented Programming）是一种基于行为（行为契约）而非继承层次的设计方式。协议编程强调对象的行为和能力，而不是它们的具体类型或所属类。
+
+在 Python 中，协议并不是显式声明的，而是隐式的。也就是说，==一个对象是否遵循某个协议，取决于它是否实现了该协议所要求的方法或属性，而不需要继承某个特定的基类==。
+
+- `__init__(self)`：初始化方法，在类创建实例对象(`__new__()`)之后自动触发该方法。`__init__()`须至少传入一个参数self(即`__new__()`返回的实例),` __init__()`无需返回值
+- ` __del__(self)`：析构方法，对应命令del，即对象被垃圾回收的时候，自动调用该方 法，以释放资源。除非有特殊要求，一般不要重写。
+
+实例被创建以后，该实例会被自动加上`__class__`、`__dict__`两个属性
+
+-  `__class__`：获取对象所属的类(`对象.__class__`)
+- `__base__`：获取类的父类(`类.__base__`) 
+- `__bases__`：获取类的父类元组(多继承，`类.__bases__`)
+- `__mro__`：获取类继承关系的元组(`类.__mro__`，也可以使用这种形式`类名.mro()`) 
+- `__subclasses__`：获取子类的列表(`类.__subclasses__`)
+-  ` __dict__`：由对象内部所有属性名和属性值组成的字典
+   -  `类名.__dict__` 会输出包含类中所有类属性（含方法）的字典
+   -  `实例.__dict__` 会输出包含实例属性（不含方法）的字典
+   -  子类调用的 `__dict__` 中，不会包含父类中的类属性
+   -  `实例.__dict__` 可通过字典的形式修改属性值
+   -  `类.__dict__` 只读，不可直接修改属性值
+   -  `vars([object])`用于返回对象的 `__dict__` 属性
+
+-  `__dir__()`：返回对象所有属性与方法名的有序列表
+   -  `dir()`：其内部实现是在调用`__dir__() `方法的基础上，对该方法返回的属性名 和方法名实现排序的结果（`dir()`的二次加工）
+   -  使用`__dir__() `方法和` dir() `函数输出的数据相同，但排序不同
+   -  `dir()`函数输出的不仅包括类中添加的属性和方法，还将输出==从父类继承得到 的属性名和方法名==
+
+-  `__call__`：在类中重载() 运算符，从而使得该类实例能像函数一样被调用
+
+**描述器**
+
+实现了`__get__()`、`__set__()`、` __delete__()`中至少一种方法的对象， 称为描述器
+
+- `__get__(self, instance, owner)`：用于获取属性值。
+- `__set__(self, instance, value)`：用于设置属性值。
+- `__delete__(self, instance)`：用于删除属性。
+
+描述器让对象可自定义属性查找、存储和删除操作
+
+描述器==仅在作为一个类变量存储在另一个类中时才起作用 ，放入实例时则失效==
+
+```python
+# 示例：托管属性
+class PositiveNumber:
+    def __get__(self, instance, owner):
+        return instance.__dict__.get(self.name, 0)
+
+    def __set__(self, instance, value):
+        if not isinstance(value, (int, float)):
+            raise TypeError(f"{self.name} must be a number.")
+        if value < 0:
+            raise ValueError(f"{self.name} must be positive.")
+        instance.__dict__[self.name] = value
+
+    def __set_name__(self, owner, name):
+        self.name = name
+
+class MyClass:
+    x = PositiveNumber()
+    y = PositiveNumber()
+
+obj = MyClass()
+obj.x = 10  # 设置成功
+print(obj.x)  # 输出: 10
+
+obj.y = -5  # ValueError: y must be positive.
+```
+
+- 数据描述器：同时实现了 `__get__` 和 `__set__` 或 `__delete__`方法，优先级更高，会覆盖实例的同名属性。
+- 非数据描述器：仅实现了 `__get__` 方法，不会覆盖实例的同名属性。
+
+**描述器涉及的一些函数、方法及访问顺序**
+
+- `__getattribute__(self, name) `：实例属性访问拦截器，在对类实例属性和方法访 问(无论属性和方法是否存在)时，此方法均会被无条件调用。用于封装属性，只提供部分访问权限
+- `__getattr__(self, name)`：当调用实例属性引发 AttributeError 失败时被调用。调用`__getattr__`前必会调用`__getattribute__`，是一个后备机制，仅处理访问不存在的属性的情况
+- `getattr(object, name, default)`：如果字符串name是对象object的属性之一的名称，则返回name对应的值，如果该属性是一个函数，`getattr` 返回的是函数本身，否则返回 default（default可省略，返回AttributeError）
+- `hasattr(object, name)`：如果字符串name是对象object的属性之一的名称，则返回 True，否则返回 False（此功能是通过调用 getattr(object, name) 看是否有AttributeError 异常来实现的）
+- `setattr(object, name, value)`：本函数与 getattr() 相对应。其参数为一个对象、一个字符串和一个任意值。字符串可以为某现有属性的名称，或为新属性。只要对象允许，函数会将值赋给属性（甚至可以将属性改为方法）
+
+```python
+class A:
+    x = 66
+    print("class attribute...")
+
+    def __init__(self, x):
+        self.x = x # 赋值语句左边不会调用__getattribute__
+        print("initial...")
+
+    def func(self):
+        return "func function"
+    
+    def __getattr__(self, item):
+        print("in __getattr__")
+        return 100
+    
+    def __getattribute__(self, item):
+        # 不要在该方法中出现例如访问self.x的访问实例属性的内容
+        # 会导致无线循环调用
+        print("in __getattribute__")
+        return super().__getattribute__(item)
+    
+a = A(10)
+a.x = 55
+print(a.x)
+print(a.y)
+print(a.func())
+print(A.x) # 类调用不会触发__getattribute__和__getattr__方法
+
+"""
+class attribute...
+initial...
+in __getattribute__
+55
+in __getattribute__
+in __getattr__
+100
+in __getattribute__
+func function
+66
+"""
+```
+
+**Property属性描述器**
+
+在 Python 中，`property` 是一个内置的==数据描述器==，用于将类的方法转化为属性
+
+```python
+class MyClass:
+    def __init__(self, value):
+        self._value = value
+
+    @property
+    def value(self):
+        print("Getting value")
+        return self._value
+
+    @value.setter
+    def value(self, new_value):
+        print("Setting value")
+        self._value = new_value
+
+    @value.deleter
+    def value(self):
+        print("Deleting value")
+        del self._value
+
+# 测试
+obj = MyClass(42)
+print(obj.value)  # 调用 getter
+# 输出: Getting value
+#      42
+
+obj.value = 100  # 调用 setter
+# 输出: Setting value
+
+del obj.value  # 调用 deleter
+# 输出: Deleting value
+```
 
 
 
@@ -1013,11 +1437,119 @@ print(Student.show_motto)
 
 ## Exception
 
+错误：语法错误（IDE会报错）、逻辑错误（代码可执行但执行结果不符预期），可以人为避免
 
+异常：程序语法正确，但执行中因一些意外而导致的错误
 
+**异常处理**
 
+```python
+try:
+    pass
+except (Exception, ValueError, TypeError) as e:
+    pass
+else:
+    pass # 没有异常发生时执行的代码块
+finally:
+    pass # 无论是否发生异常，都会执行的代码块
+```
 
+- 首先执行try子句（try和except关键字之间的（多行）语句），如果没有触发异常，则跳过except子句，try语句执行完毕
+- 如果在执行 try 子句时发生了异常，则跳过该子句中剩下的部分。如果异常的类型与 except 关键字后指定的异常相匹配，则会执行except子句，然后跳到try/except代码块之后继续执行
+- ==如果发生的异常与 except 子句中指定的异常不匹配，则它会被传递到外部的 try 语句中==；如果没有找到处理程序，则它是一个未处理异常且执行将终止并输出错误信息；如果某个 `except` 块内部再次抛出异常，该异常不会被同一 `try` 语句中的其他 `except` 块捕获，而是直接向外传播
 
+```python
+class B(Exception):
+    pass
+
+class C(B):pass
+
+class D(C):pass
+
+for cls in [B, C, D]:
+    try:
+        raise cls()
+    except D:
+        print("D")
+    except C:
+        print("C")
+    except B:
+        print("B")
+
+"""
+B
+C
+D
+"""
+```
+
+`except` 块会匹配当前异常类及其子类的实例
+
+如果颠倒 except 子句的顺序（把 except B 放在最前），则会输出 B, B, B（即触发了第一个匹配的except子句）
+
+**raise**
+
+raise 语句可以强制触发指定的异常，可以单独抛出内置的异常类
+
+```python
+try:
+    raise NameError("HiThere")
+except NameError:
+    print("An exception flew by!")
+    raise # re-raise the exception
+```
+
+如只想判断是否触发了异常，但并不打算处理该异常，则可以使用更简单的 raise 语句重新触发异常
+
+**异常链**
+
+`__context__` 是异常对象的一个内置属性，指向在当前异常之前发生的另一个异常
+
+```python
+try:
+    try:
+        int("not a number")  # ValueError
+    except ValueError as e:
+        raise KeyError("Key not found")  # KeyError 隐式链接 ValueError
+except Exception as e:
+    print(f"Exception: {e}")
+    print(f"Context: {e.__context__}")  # 打印隐式上下文异常
+
+```
+
+- 隐式异常链 (`__context__`)：当一个异常在另一个异常的 `except` 块中发生时，Python 会自动记录前一个异常为当前异常的 `__context__`。
+- 显式异常链 (`__cause__`)：使用 `raise ... from ...` 时，`__cause__` 会记录由用户显式指定的因果关系，而 `__context__` 依然存在。
+- 优先级：如果同时存在 `__cause__` 和 `__context__`，`__cause__` 优先显示。
+
+可使用from None 的方式让新异常替换原异常以显示其目的，同时让原异常在 __context__ 中保持可用状态以便在调试时内省:
+
+```python
+try:
+    open("database.sqlite")
+except OSError:
+    raise RuntimeError from None
+
+"""
+---------------------------------------------------------------------------
+RuntimeError                              Traceback (most recent call last)
+Cell In[9], line 4
+      2     open("database.sqlite")
+      3 except OSError:
+----> 4     raise RuntimeError from None
+
+RuntimeError:
+"""
+```
+
+**finally**
+
+==很重要！==
+
+- 如果执行try子句期间触发了某个异常，则该except子句应处理此异常，若该异常无except子句处理，则在finally子句执行后，该异常会被重新触发
+- except 或 else 子句执行期间也会触发异常，同理，该异常会在finally子句执行之后被重新触发
+- 如果finally 子句中包含break、continue 或 return 等语句，异常将不会被重新触发 return 语句之前执行
+- 如果执行try语句时遇到break、continue 或 return 语句，则 finally 子句在执行 break、continue 或return 语句之前执行
+- 如果finally 子句中包含 return 语句，则返回值来自 finally 子句的某个 return 语句的返回值，而不是来自try 子句的return 语句的返回值
 
 
 
@@ -1025,16 +1557,113 @@ print(Student.show_motto)
 
 ## 文件操作
 
+**文件I/O**
 
+```python
+file = open("example.txt", "w") # 函数
+file.write("Hello, Python!") # 方法
+file.close() # 方法
 
+file = open("example.txt", "r") # 方法
+content = file.read() # 方法
+file.close() # 方法
+```
 
+open()函数返回有read()方法的对象，称为类文件对象(file-like Object)
 
+| 模式 | 读/写 | 特点                                   | 适用场景                           |
+| ---- | ----- | -------------------------------------- | ---------------------------------- |
+| `r`  | 只读  | 读取文件，文件不存在抛异常             | 读取现有文件内容                   |
+| `r+` | 读写  | 读取并写入，文件不存在抛异常           | 需要读取并修改文件内容             |
+| `w`  | 写入  | 写入文件，文件存在覆盖，文件不存在创建 | 覆盖文件，写入新内容               |
+| `w+` | 读写  | 读写文件，文件存在覆盖，文件不存在创建 | 覆盖文件，写入新内容，并读出新内容 |
+| `a`  | 追加  | 追加内容，文件不存在创建               | 追加内容到文件末尾                 |
+| `a+` | 读写  | 读写文件并追加内容，文件不存在创建     | 追加内容并读出现有内容             |
 
+**文件/目录**
 
+os模块执行文件、目录操作：
 
+```python
+import os
+
+# 重命名文件或目录
+os.rename("old_name.txt", "new_name.txt")
+
+# 删除文件，不能删除目录
+os.remove("file_to_delete.txt")
+
+# 返回指定目录中的所有文件和目录的列表
+files = os.listdir(".")
+print(files)
+
+# 创建一个目录
+os.mkdir("new_directory")
+
+# 删除一个空目录，如果目录不为空，会引发 OSError
+os.rmdir("empty_directory")
+
+# 返回当前工作目录的路径
+current_directory = os.getcwd()
+print(current_directory)
+
+# 改变当前工作目录，如果路径不存在，会引发 FileNotFoundError
+os.chdir("/path/to/directory")
+
+# 判断指定路径是否为目录，返回 True 表示是目录，False 表示不是
+is_directory = os.path.isdir("some_directory")
+print(is_directory)
+```
 
 
 
 
 
 ## 模块、包、库
+
+**模块**
+
+```python
+import module
+from modelname import name
+from modelname import *
+```
+
+将一组相关功能的代码（可能包含多个函数与类）写入一个单独的.py文件中，以便在其它场景导入使用，这样的.py文件称为模块
+
+搜索路径：
+
+- 当前目录
+- 如果都找不到，Python会察看默认路径
+- 如不在当前目录，则搜索在shell变量PYTHONPATH下的每个目录
+
+模块搜索路径存储在 system 模块的 sys.path 变量中，变量里包含当前目录，PYTHONPATH和由安装过程决定的默认目录：
+
+```python
+import sys
+print(sys.path)
+```
+
+**包**
+
+包是一个有层次的文件目录结构，它定义了由n个模块或n个子包
+
+`__init__.py` 文件用于初始化包，是可选的，包加载时，其中的代码会被执行
+
+```bash
+mypackage/         # 包名
+├── __init__.py    # 包的初始化文件
+├── module1.py     # 模块1
+├── module2.py     # 模块2
+└── subpackage/    # 子包
+    ├── __init__.py
+    └── module3.py
+```
+
+**库**
+
+参照其它编程语言的一个称呼，完成一定功能的代码集合，具体表现可以是一个模块，也可以是包
+
+**框架**
+
+一个架构层面的概念，是解决一个开放性问题而设计的具有一定约束性的支撑结构
