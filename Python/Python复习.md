@@ -37,7 +37,18 @@ b = 99 + true   # 报错，python大小写敏感
 
 - 区分大小写，如: sxt和SXT是不同的
 - 第一个字符必须是字母、下划线，其后的字符是：字母、数字、下划线
-- 不能使用关键字，如: if, or, while等
+- 不能使用关键字，如: if, or, while等（int、double这种不是关键字）
+
+关键字列表：
+
+```python
+False      None       True       and        as         assert
+async      await      break      class      continue   def
+del        elif       else       except     finally    for
+from       global     if         import     in         is
+lambda     nonlocal   not        or         pass       raise
+return     try        while      with       yield
+```
 
 **Python中一切皆为对象**
 
@@ -50,6 +61,8 @@ b = 99 + true   # 报错，python大小写敏感
 对象一旦被创建，其id与type便无法再修改
 
 ### 赋值
+
+https://www.cnblogs.com/f-ck-need-u/p/10123145.html
 
 ```python
 a = 99
@@ -65,6 +78,7 @@ a = 10
 b = a
 a = 20
 print(a, b) # 20 10
+# 整数是不可变对象。a 修改后，不会影响 b 的值
 ```
 
 **解包赋值：**
@@ -105,6 +119,14 @@ print(a)  # 输出: [99, 2, [3, 4]]
 ```
 
 ```python
+x = [[1]]*3
+print(x) # [[1], [1], [1]]
+x[0][0]=5
+print(x) # [[5], [5], [5]]
+# 这些子列表是同一个对象的引用，即所有的 [1] 指向同一块内存
+```
+
+```python
 import copy
 
 a = [1, 2, [3, 4]]
@@ -127,6 +149,29 @@ print(b)  # 输出: [99, 2, [5, 4]]
 ```
 
 ### String
+
+字符串是不可变对象。==字符串的任何操作都不会修改原来的字符串对象，而是生成并返回一个新的字符串对象==
+
+```python
+x = "hello world"
+x.replace("hello", "hi")
+print(x) # "hello world"
+```
+
+```python
+a = "abcd"
+a = 'e' + a[1:]
+print(a) # ebcd
+a[0] = 'f' # TypeError: 'str' object does not support item assignment
+```
+
+```python
+print(len("中文")) # 2
+print(len(b"abcd")) # 4
+print(len(b"\xe4\xb8\xad\xe6\x96\x87")) # 6
+print("中文".encode("utf-8")) # b'\xe4\xb8\xad\xe6\x96\x87'
+print(len("中文".encode("utf-8"))) # 6
+```
 
 **基本操作**
 
@@ -293,16 +338,19 @@ print(nums)
 """
 ```
 
-排序：
+排序（==重要！==）：
 
 ```python
-list.sort(key=None,reverse=False) # 对原有列表排序
+list.sort(key=None,reverse=False) # 方法，对原有列表排序
 #key 参数是⼀个函数，⽤于⽣成⽤于排序⽐较的键。
 #reverse 参数是⼀个布尔值，⽤于指定是否按降序进⾏排序。
-list.reverse() # 反转列表中的元素顺序
+
+list.reverse() # 反转列表中的元素顺序，只是反转不排序
+
 sorted(iterable, key=None, reverse=False) #sorted和reversed都是内置函数，不会改变list
 #iterable 是要排序的可迭代对象，key和reverse 参数与list.sort() ⽅法相似
-reversed(seq) # 这是⼀个内置函数，返回⼀个反向的迭代器
+
+reversed(seq) # 这是⼀个内置函数，返回⼀个反向的 迭代器
 
 # list[start:stop:step], 切片，注意！不改变原来的list，返回新的排序对象
 original_list = [1, 2, 3, 4, 5]
@@ -340,6 +388,8 @@ print (tinydict.values()) # Prints all the values
 
 ### Set
 
+创建一个空集合必须用 set() 而不是 { }，因为 { } 是用来创建一个空字典
+
 ```python
 # 使用大括号创建一个可变集合
 my_set = {1, 2, 3}
@@ -348,7 +398,13 @@ my_set.remove(2)     # 移除元素
 print(my_set)        # 输出可能是 {1, 3, 4}，因为集合是无序的
 ```
 
-### 函数参数
+### 函数和参数
+
+函数都有返回值（None也是返回值）
+
+函数只有一个返回值（返回多个是以元组形式返回）
+
+传参时，不可变对象为值传递，在函数内部修改它们的值会创建一个新的对象，不会影响原始对象；可变对象为引用传递，函数内部的修改会直接影响原始对象，因为它们共享同一个引用。
 
 **1. 位置参数（Positional Arguments）**
 
@@ -382,11 +438,17 @@ buggy('a') # ['a']
 buggy('b') # ['a', 'b']
 buggy('c', []) # ['c']
 buggy('d') # ['a', 'b', 'd']
+
+# 默认参数只在函数定义时计算一次，如果参数是可变对象（如列表、字典等），它会在后续的函数调用之间共享
+# 如果默认参数是不可变对象则不会遇到类似可变对象的共享问题
+# 每次调用函数时，Python 会为每次调用创建一个新的不可变对象，而不会出现多个函数调用之间共享同一个对象的情况
 ```
 
 **3. 可变参数（Varargs 或 *args）**
 
 可变参数允许你传递任意数量的位置参数给函数。在函数定义中，使用单星号 `*` 前缀一个参数名来接收这些参数，通常命名为 `*args`。
+
+`*args` 会把所有位置参数收集到一个元组中。在函数内部，`args` 就是一个==元组==
 
 ```python
 def sum_all(*numbers):
@@ -396,9 +458,11 @@ print(sum_all(1, 2, 3))  # 输出: 6
 print(sum_all(1, 2, 3, 4, 5))  # 输出: 15
 ```
 
-**4. 关键字参数（Keyword Arguments 或 **kwargs）**
+**4. 关键字参数（Keyword Arguments 或 kwargs）**
 
 关键字参数允许你传递任意数量的关键字参数给函数。在函数定义中，使用双星号 `**` 前缀一个参数名来接收这些参数，通常命名为 `**kwargs`。
+
+`**kwargs` 会把所有关键字参数收集到一个字典中，在函数内部，`kwargs` 就是一个==字典==，键是参数名，值是参数值
 
 ```python
 def person(name, age, **kwargs):
@@ -550,8 +614,6 @@ def my_function():      # 函数定义语句
 x = 10                 # 变量赋值语句
 ```
 
-
-
 #### 推导式
 
 列表推导式、集合推导式、字典推导式
@@ -571,8 +633,6 @@ gen_exp = (x**2 for x in range(5))
 for num in gen_exp:
     print(num)
 ```
-
-
 
 #### 匿名函数与高阶函数
 
@@ -604,6 +664,35 @@ print(product)  # 输出: 24
 exam_res = {'Mike': 75, 'Judy': 88, 'Cris': 57}
 sorted_items = sorted(exam_res.items(), key=lambda item: item[1], reverse=True)
 print(sorted_items)  # 输出: [('Judy', 88), ('Mike', 75), ('Cris', 57)]
+```
+
+#### zip
+
+**`zip()` 函数** 是一个用于**将多个可迭代对象中的元素组合为元组**的函数。它的返回值是一个==迭代器==，包含按位置配对的元组。
+
+如果传入的可迭代对象长度不同，`zip` 会以最短的对象为准，忽略多余的元素。
+
+```python
+list1 = [1, 2, 3]
+list2 = ['a', 'b', 'c']
+
+result = zip(list1, list2)
+print(list(result))  # 输出：[(1, 'a'), (2, 'b'), (3, 'c')]
+```
+
+#### enumerate
+
+```python
+def print_everything(*args, vegetables = 'cabbage'):
+    for count, thing in enumerate(args):
+        print('{0}: {1}'.format(count, thing))
+
+print_everything('apple', 'banana', 'orange')
+"""
+0: apple
+1: banana
+2: orange
+"""
 ```
 
 
@@ -742,6 +831,19 @@ HELLO WORLD
 
 转换为迭代器：`a.__iter__()`或者iter(a)
 
+**iter（迭代器构造函数）**
+
+`iter()` 是一个内置函数，用来将一个可迭代对象（`Iterable`）转换为迭代器（`Iterator`）。如果一个对象是可迭代的，调用 `iter()` 将返回一个迭代器对象。
+
+如果对象已经是一个迭代器，`iter()` 将返回该对象本身。
+
+```python
+lst = [1, 2, 3]
+iterator = iter(lst)  # 将可迭代对象转换为迭代器
+print(next(iterator))  # 输出 1
+print(next(iterator))  # 输出 2
+```
+
 ### Iterator
 
 - ==实现迭代器协议的对象，它包含方法`__iter__() `和`__next__()`==
@@ -812,10 +914,24 @@ for num in counter:
 - ==任何包含了yield关键字的函数都是生成器函数==
 - 普通的函数计算并返回一个值，而生成器返回一个能返回数据流的迭代器
 - 当函数到达return表达式时，局部变量会被销毁然后把表达式返回给调用者
-- yield 和 return 最大区别：程序执行到 yield 时，生成器的执行状态会挂起并 保留局部变量，在下一次调用生成器__next__()方法的时候，函数会恢复执行
+- yield 和 return 最大区别：程序执行到 yield 时，生成器的执行状态会挂起并保留局部变量，在下一次调用生成器`__next__()`方法的时候，函数会恢复执行
 - 若生成器没有产生下一个值就退出，则将引发StopIteration异常
 
 如果在生成器函数中使用了`return`，并且提供了返回值，那么该返回值会成为`StopIteration`异常的一部分，这在Python 3.3及之后的版本中是有效的。在此之前，`return`语句不能带有返回值。
+
+```python
+def demo():
+    for i in range(4):
+        yield i
+
+g = demo() # 创建生成器对象，未使用
+g_a = (i for i in g) # 创建生成器对象，未使用
+g_b = (i for i in g_a) # 创建生成器对象，未使用
+
+print(list(g)) # [0, 1, 2, 3]
+print(list(g_a)) # []
+print(list(g_b)) # []
+```
 
 **.send(value)：**
 
@@ -885,6 +1001,16 @@ Don't forget to clean up when 'close()' is called.
 三大特性：封装、继承、多态
 
 协议编程：通过定义和实现**协议**来描述和实现行为，而不是依赖传统的继承关系。不需要通过类继承或明确实现某个接口，只要对象实现了协议中定义的行为，就被认为满足了该协议。
+
+对象三要素：
+
+- value：对象的值
+- type：标识对象的类型
+- id: 身份，唯一标识一个对象
+
+type() 和 isinstance() 函数的区别:
+
+isinstance(object, classinfo)判断参数 object 是否是 classinfo 类或者其子类的实例  type()只能判断是否是该类本身的实例
 
 ### 基础
 
@@ -1345,7 +1471,7 @@ obj.y = -5  # ValueError: y must be positive.
 
 **描述器涉及的一些函数、方法及访问顺序**
 
-- `__getattribute__(self, name) `：实例属性访问拦截器，在对类实例属性和方法访 问(无论属性和方法是否存在)时，此方法均会被无条件调用。用于封装属性，只提供部分访问权限
+- `__getattribute__(self, name) `：实例属性访问拦截器，在对==类实例属性和方法==访问(无论属性和方法是否存在)时，此方法均会被无条件调用。用于封装属性，只提供部分访问权限
 - `__getattr__(self, name)`：当调用实例属性引发 AttributeError 失败时被调用。调用`__getattr__`前必会调用`__getattribute__`，是一个后备机制，仅处理访问不存在的属性的情况
 - `getattr(object, name, default)`：如果字符串name是对象object的属性之一的名称，则返回name对应的值，如果该属性是一个函数，`getattr` 返回的是函数本身，否则返回 default（default可省略，返回AttributeError）
 - `hasattr(object, name)`：如果字符串name是对象object的属性之一的名称，则返回 True，否则返回 False（此功能是通过调用 getattr(object, name) 看是否有AttributeError 异常来实现的）
@@ -1521,7 +1647,7 @@ except Exception as e:
 - 显式异常链 (`__cause__`)：使用 `raise ... from ...` 时，`__cause__` 会记录由用户显式指定的因果关系，而 `__context__` 依然存在。
 - 优先级：如果同时存在 `__cause__` 和 `__context__`，`__cause__` 优先显示。
 
-可使用from None 的方式让新异常替换原异常以显示其目的，同时让原异常在 __context__ 中保持可用状态以便在调试时内省:
+可使用from None 的方式让新异常替换原异常以显示其目的，同时让原异常在 `__context__` 中保持可用状态以便在调试时内省:
 
 ```python
 try:
@@ -1643,6 +1769,11 @@ from modelname import *
 import sys
 print(sys.path)
 ```
+
+`__name__` 是一个特殊变量，通常用于区分脚本是否被直接运行还是被作为模块导入。
+
+- 当 Python 脚本直接运行时，`__name__` 的值是字符串 `"__main__"`。
+- 当脚本被导入为模块时，`__name__` 的值是模块的名称。
 
 **包**
 
