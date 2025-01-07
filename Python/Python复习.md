@@ -1673,7 +1673,7 @@ RuntimeError:
 
 - 如果执行try子句期间触发了某个异常，则该except子句应处理此异常，若该异常无except子句处理，则在finally子句执行后，该异常会被重新触发
 - except 或 else 子句执行期间也会触发异常，同理，该异常会在finally子句执行之后被重新触发
-- 如果finally 子句中包含break、continue 或 return 等语句，异常将不会被重新触发 return 语句之前执行
+- 如果finally 子句中包含break、continue 或 return 等语句，异常将不会被重新触发
 - 如果执行try语句时遇到break、continue 或 return 语句，则 finally 子句在执行 break、continue 或return 语句之前执行
 - 如果finally 子句中包含 return 语句，则返回值来自 finally 子句的某个 return 语句的返回值，而不是来自try 子句的return 语句的返回值
 
